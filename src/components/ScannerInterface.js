@@ -32,7 +32,7 @@ const ScannerInterface = () => {
     formData.append('file', filesRef.current[0]);
 
     try {
-      const response = await axios.post('http://127.0.0.1:5000/ocr', formData, {
+      const response = await axios.post('https://medalert-backend-ae9o.onrender.com/ocr', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
