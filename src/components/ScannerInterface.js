@@ -20,6 +20,14 @@ const ScannerInterface = () => {
     }
   };
 
+  // --- NEW FUNCTION TO REMOVE A SINGLE IMAGE ---
+  const handleRemoveImage = (indexToRemove) => {
+    // Remove from the files ref
+    filesRef.current = filesRef.current.filter((_, index) => index !== indexToRemove);
+    // Remove from the image previews state
+    setImagePreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
+  };
+
   const handleScan = async () => {
     if (filesRef.current.length === 0) {
       alert('Please upload an image first.');
@@ -27,26 +35,21 @@ const ScannerInterface = () => {
     }
     setIsLoading(true);
     setOcrResult('');
-
     let combinedText = '';
 
     for (const file of filesRef.current) {
       const formData = new FormData();
       formData.append('file', file);
-
       try {
         const response = await axios.post('https://medalert-backend-ae9o.onrender.com/ocr', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
+          headers: { 'Content-Type': 'multipart/form-data' },
         });
-        combinedText += response.data.text + '\n\n---\n\n'; // Add separator between results
+        combinedText += response.data.text + '\n\n---\n\n';
       } catch (error) {
         console.error('Error scanning file:', file.name, error);
         combinedText += `Error scanning image: ${file.name}\n\n---\n\n`;
       }
     }
-
     setOcrResult(combinedText);
     setIsLoading(false);
   };
@@ -61,8 +64,8 @@ const ScannerInterface = () => {
 
   return (
     <div className="scanner-container">
-      {/* ... rest of your JSX remains the same ... */}
       <div className="scanner-main">
+        {/* ...upload logic... */}
         <h1>Product Scanner</h1>
         <p>Upload images of the product description or use your camera to scan its contents.</p>
         <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
@@ -88,17 +91,21 @@ const ScannerInterface = () => {
           {imagePreviews.length > 0 && (<button onClick={clearImages} className="clear-button">Clear All</button>)}
         </div>
         <div className="image-preview-grid">
-            {imagePreviews.length > 0 ? (
-                imagePreviews.map((src, index) => (
-                <div key={index} className="preview-image-container">
-                    <img src={src} alt={`Preview ${index + 1}`} />
-                </div>
-                ))
-            ) : (
-                <div className="placeholder-text">
-                <p>Your uploaded images will appear here.</p>
-                </div>
-            )}
+          {imagePreviews.length > 0 ? (
+            imagePreviews.map((src, index) => (
+              <div key={index} className="preview-image-container">
+                <img src={src} alt={`Preview ${index + 1}`} />
+                {/* --- NEW REMOVE BUTTON ADDED HERE --- */}
+                <button className="remove-image-button" onClick={() => handleRemoveImage(index)}>
+                  &times;
+                </button>
+              </div>
+            ))
+          ) : (
+            <div className="placeholder-text">
+              <p>Your uploaded images will appear here.</p>
+            </div>
+          )}
         </div>
         <div className="ocr-result-container">
           <h2>Extracted Text</h2>
