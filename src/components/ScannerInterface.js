@@ -28,22 +28,27 @@ const ScannerInterface = () => {
     setIsLoading(true);
     setOcrResult('');
 
-    const formData = new FormData();
-    formData.append('file', filesRef.current[0]);
+    let combinedText = '';
 
-    try {
-      const response = await axios.post('https://medalert-backend-ae9o.onrender.com/ocr', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      setOcrResult(response.data.text);
-    } catch (error) {
-      console.error('Error during OCR process:', error);
-      setOcrResult('Error: Could not scan the image.');
-    } finally {
-      setIsLoading(false);
+    for (const file of filesRef.current) {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      try {
+        const response = await axios.post('https://medalert-backend-ae9o.onrender.com/ocr', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        });
+        combinedText += response.data.text + '\n\n---\n\n'; // Add separator between results
+      } catch (error) {
+        console.error('Error scanning file:', file.name, error);
+        combinedText += `Error scanning image: ${file.name}\n\n---\n\n`;
+      }
     }
+
+    setOcrResult(combinedText);
+    setIsLoading(false);
   };
 
   const clearImages = () => {
@@ -56,6 +61,7 @@ const ScannerInterface = () => {
 
   return (
     <div className="scanner-container">
+      {/* ... rest of your JSX remains the same ... */}
       <div className="scanner-main">
         <h1>Product Scanner</h1>
         <p>Upload images of the product description or use your camera to scan its contents.</p>
