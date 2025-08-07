@@ -1,15 +1,29 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import './ScannerInterface.css';
 import { ReactComponent as UploadIcon } from './upload.svg';
 
 const ScannerInterface = () => {
+  // --- NEW: State for theme, defaulting to 'dark' ---
+  const [theme, setTheme] = useState('dark');
+  
   const [imagePreviews, setImagePreviews] = useState([]);
   const [ocrResult, setOcrResult] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const filesRef = useRef([]);
+
+  // --- NEW: useEffect to apply theme to the body ---
+  useEffect(() => {
+    document.body.className = ''; // Clear existing classes
+    document.body.classList.add(theme);
+  }, [theme]);
+
+  // --- NEW: Function to toggle the theme ---
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
 
   const handleFileChange = (event) => {
     const newFiles = Array.from(event.target.files);
@@ -20,11 +34,8 @@ const ScannerInterface = () => {
     }
   };
 
-  // --- NEW FUNCTION TO REMOVE A SINGLE IMAGE ---
   const handleRemoveImage = (indexToRemove) => {
-    // Remove from the files ref
     filesRef.current = filesRef.current.filter((_, index) => index !== indexToRemove);
-    // Remove from the image previews state
     setImagePreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
   };
 
@@ -65,8 +76,13 @@ const ScannerInterface = () => {
   return (
     <div className="scanner-container">
       <div className="scanner-main">
-        {/* ...upload logic... */}
-        <h1>Product Scanner</h1>
+        <div className="header">
+            <h1>Product Scanner</h1>
+            {/* --- NEW: Theme Toggle Button --- */}
+            <button onClick={toggleTheme} className="theme-toggle-button">
+                {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+            </button>
+        </div>
         <p>Upload images of the product description or use your camera to scan its contents.</p>
         <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
         <input type="file" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
@@ -91,21 +107,20 @@ const ScannerInterface = () => {
           {imagePreviews.length > 0 && (<button onClick={clearImages} className="clear-button">Clear All</button>)}
         </div>
         <div className="image-preview-grid">
-          {imagePreviews.length > 0 ? (
-            imagePreviews.map((src, index) => (
-              <div key={index} className="preview-image-container">
-                <img src={src} alt={`Preview ${index + 1}`} />
-                {/* --- NEW REMOVE BUTTON ADDED HERE --- */}
-                <button className="remove-image-button" onClick={() => handleRemoveImage(index)}>
-                  &times;
-                </button>
-              </div>
-            ))
-          ) : (
-            <div className="placeholder-text">
-              <p>Your uploaded images will appear here.</p>
-            </div>
-          )}
+            {imagePreviews.length > 0 ? (
+                imagePreviews.map((src, index) => (
+                <div key={index} className="preview-image-container">
+                    <img src={src} alt={`Preview ${index + 1}`} />
+                    <button className="remove-image-button" onClick={() => handleRemoveImage(index)}>
+                      &times;
+                    </button>
+                </div>
+                ))
+            ) : (
+                <div className="placeholder-text">
+                <p>Your uploaded images will appear here.</p>
+                </div>
+            )}
         </div>
         <div className="ocr-result-container">
           <h2>Extracted Text</h2>
