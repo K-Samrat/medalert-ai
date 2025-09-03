@@ -1,4 +1,4 @@
-/* --- NEW: Define colors using CSS Variables --- */
+/* --- Define colors using CSS Variables --- */
 :root {
   --bg-color: #f8f9fa;
   --card-bg-color: #ffffff;
@@ -12,7 +12,7 @@
   --shadow-color: rgba(0, 0, 0, 0.05);
 }
 
-/* --- NEW: Define Dark Mode Colors --- */
+/* --- Define Dark Mode Colors --- */
 body.dark {
   --bg-color: #121212;
   --card-bg-color: #1e1e1e;
@@ -166,15 +166,38 @@ body.dark {
     padding: 15px;
     min-height: 150px;
     margin-top: 10px;
-    white-space: pre-wrap;
-    word-wrap: break-word;
-    font-family: 'Courier New', Courier, monospace;
+    white-space: normal;
+    word-break: break-word;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
 }
 
-/* --- Other styles remain the same --- */
-.clear-button, .upload-button, .scan-button, .remove-image-button {
-    /* These can remain as they are or be updated to use variables if you wish */
+.structured-result h3 {
+    margin-top: 0;
+    color: var(--upload-box-border);
 }
+
+.structured-result h4 {
+    margin-top: 1.2rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.structured-result ul {
+    padding-left: 20px;
+    margin: 0;
+}
+
+.structured-result li {
+    margin-bottom: 5px;
+}
+
+.error-text {
+    color: #dc3545;
+    font-weight: bold;
+}
+
 .clear-button {
   background-color: #dc3545; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-size: 0.9rem; cursor: pointer; transition: background-color 0.2s;
 }
@@ -193,4 +216,37 @@ body.dark {
 @media (max-width: 992px) {
   .scanner-container { flex-direction: column; padding: 20px; gap: 20px; }
   .scanner-main { max-width: 100%; }
+}
+/* --- Define colors using CSS Variables --- */
+.ocr-result-box {
+    white-space: normal; /* Allow text to wrap normally */
+    word-break: break-word; /* Break long words if necessary */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.6;
+}
+
+.structured-result h3 {
+    margin-top: 0;
+    color: var(--upload-box-border);
+}
+
+.structured-result h4 {
+    margin-top: 1.2rem;
+    margin-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 5px;
+}
+
+.structured-result ul {
+    padding-left: 20px;
+    margin: 0;
+}
+
+.structured-result li {
+    margin-bottom: 5px;
+}
+
+.error-text {
+    color: #dc3545;
+    font-weight: bold;
 }

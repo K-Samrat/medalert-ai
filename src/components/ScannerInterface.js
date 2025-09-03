@@ -4,23 +4,19 @@ import './ScannerInterface.css';
 import { ReactComponent as UploadIcon } from './upload.svg';
 
 const ScannerInterface = () => {
-  // --- NEW: State for theme, defaulting to 'dark' ---
   const [theme, setTheme] = useState('dark');
-  
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [ocrResult, setOcrResult] = useState('');
+  const [ocrResult, setOcrResult] = useState(null); // Will now hold the JSON object
   const [isLoading, setIsLoading] = useState(false);
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
   const filesRef = useRef([]);
 
-  // --- NEW: useEffect to apply theme to the body ---
   useEffect(() => {
-    document.body.className = ''; // Clear existing classes
+    document.body.className = '';
     document.body.classList.add(theme);
   }, [theme]);
 
-  // --- NEW: Function to toggle the theme ---
   const toggleTheme = () => {
     setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
   };
@@ -45,62 +41,102 @@ const ScannerInterface = () => {
       return;
     }
     setIsLoading(true);
-    setOcrResult('');
-    let combinedText = '';
+    setOcrResult(null);
 
-    for (const file of filesRef.current) {
-      const formData = new FormData();
-      formData.append('file', file);
-      try {
-        const response = await axios.post('https://medalert-backend-ae9o.onrender.com/ocr', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        combinedText += response.data.text + '\n\n---\n\n';
-      } catch (error) {
-        console.error('Error scanning file:', file.name, error);
-        combinedText += `Error scanning image: ${file.name}\n\n---\n\n`;
-      }
+    const formData = new FormData();
+    // Append all files to the form data to be sent in one request
+    filesRef.current.forEach(file => {
+      formData.append('files[]', file);
+    });
+
+    try {
+      const backendUrl = 'https://medalert-backend.onrender.com/ocr'; // Replace with your backend URL if different
+      const response = await axios.post(backendUrl, formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+      setOcrResult(response.data);
+    } catch (error) {
+      console.error('Error during OCR process:', error);
+      setOcrResult({ error: 'Could not scan the image(s). Please try again.' });
+    } finally {
+      setIsLoading(false);
     }
-    setOcrResult(combinedText);
-    setIsLoading(false);
   };
 
   const clearImages = () => {
     setImagePreviews([]);
-    setOcrResult('');
+    setOcrResult(null);
     filesRef.current = [];
     if (galleryInputRef.current) galleryInputRef.current.value = "";
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
-  return (
-    <div className="scanner-container">
-      <div className="scanner-main">
-        <div className="header">
-            <h1>Product Scanner</h1>
-            {/* --- NEW: Theme Toggle Button --- */}
-            <button onClick={toggleTheme} className="theme-toggle-button">
-                {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-            </button>
-        </div>
-        <p>Upload images of the product description or use your camera to scan its contents.</p>
-        <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
-        <input type="file" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
-        <div className="upload-box">
-            <UploadIcon className="upload-icon" />
-            <div className="button-group">
-                <button className="upload-button" onClick={() => galleryInputRef.current.click()}>From Gallery</button>
-                <button className="upload-button" onClick={() => cameraInputRef.current.click()}>Use Camera</button>
-            </div>
-        </div>
-        {imagePreviews.length > 0 && (
-          <div className="scan-button-container">
-            <button className="scan-button" onClick={handleScan} disabled={isLoading}>
-              {isLoading ? 'Scanning...' : `Scan ${imagePreviews.length} Image(s)`}
-            </button>
-          </div>
+  // --- NEW Component to render the structured results ---
+  const ResultDisplay = ({ data }) => {
+    if (isLoading) {
+      return <p>Analyzing, please wait...</p>;
+    }
+
+    if (!data) {
+      return <p>Scanned data will appear here.</p>;
+    }
+
+    if (data.error) {
+      return <p className="error-text">{data.error}</p>;
+    }
+
+    return (
+      <div className="structured-result">
+        {data.productName && <h3>{data.productName}</h3>}
+        {data.description && (
+          <>
+            <h4>Description</h4>
+            <p>{data.description}</p>
+          </>
+        )}
+        {data.ingredients && data.ingredients.length > 0 && (
+          <>
+            <h4>Ingredients</h4>
+            <ul>
+              {data.ingredients.map((item, index) => (
+                <li key={index}>{item}</li>
+              ))}
+            </ul>
+          </>
         )}
       </div>
+    );
+  };
+
+  return (
+    <div className="scanner-container">
+        <div className="scanner-main">
+            <div className="header">
+                <h1>Product Scanner</h1>
+                <button onClick={toggleTheme} className="theme-toggle-button">
+                    {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
+                </button>
+            </div>
+            <p>Upload images of the product description or use your camera to scan its contents.</p>
+            <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
+            <input type="file" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
+            <div className="upload-box">
+                <UploadIcon className="upload-icon" />
+                <div className="button-group">
+                    <button className="upload-button" onClick={() => galleryInputRef.current.click()}>From Gallery</button>
+                    <button className="upload-button" onClick={() => cameraInputRef.current.click()}>Use Camera</button>
+                </div>
+            </div>
+            {imagePreviews.length > 0 && (
+            <div className="scan-button-container">
+                <button className="scan-button" onClick={handleScan} disabled={isLoading}>
+                {isLoading ? 'Scanning...' : `Scan ${imagePreviews.length} Image(s)`}
+                </button>
+            </div>
+            )}
+        </div>
       <div className="preview-main">
         <div className="preview-header">
           <h2>Image Previews ({imagePreviews.length})</h2>
@@ -123,9 +159,9 @@ const ScannerInterface = () => {
             )}
         </div>
         <div className="ocr-result-container">
-          <h2>Extracted Text</h2>
+          <h2>Extracted Data</h2>
           <div className="ocr-result-box">
-            {isLoading ? <p>Processing, please wait...</p> : <pre>{ocrResult || 'Scanned text will appear here.'}</pre>}
+            <ResultDisplay data={ocrResult} />
           </div>
         </div>
       </div>
