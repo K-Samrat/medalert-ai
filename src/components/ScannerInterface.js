@@ -6,7 +6,7 @@ import { ReactComponent as UploadIcon } from './upload.svg';
 const ScannerInterface = () => {
   const [theme, setTheme] = useState('dark');
   const [imagePreviews, setImagePreviews] = useState([]);
-  const [ocrResult, setOcrResult] = useState(null); // Will now hold the JSON object
+  const [ocrResult, setOcrResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const galleryInputRef = useRef(null);
   const cameraInputRef = useRef(null);
@@ -44,22 +44,23 @@ const ScannerInterface = () => {
     setOcrResult(null);
 
     const formData = new FormData();
-    // Append all files to the form data to be sent in one request
     filesRef.current.forEach(file => {
       formData.append('files[]', file);
     });
 
     try {
-      const backendUrl = 'https://medalert-backend.onrender.com/ocr'; // Replace with your backend URL if different
+      const backendUrl = 'https://medalert-backend-ae9o.onrender.com/ocr';
       const response = await axios.post(backendUrl, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },
+        // --- NEW: Added a longer timeout ---
+        timeout: 90000, // Wait for 90 seconds before giving up
       });
       setOcrResult(response.data);
     } catch (error) {
       console.error('Error during OCR process:', error);
-      setOcrResult({ error: 'Could not scan the image(s). Please try again.' });
+      setOcrResult({ error: 'Could not scan the image(s). The server might be busy or starting up. Please try again in a minute.' });
     } finally {
       setIsLoading(false);
     }
@@ -73,37 +74,25 @@ const ScannerInterface = () => {
     if (cameraInputRef.current) cameraInputRef.current.value = "";
   };
 
-  // --- NEW Component to render the structured results ---
   const ResultDisplay = ({ data }) => {
     if (isLoading) {
-      return <p>Analyzing, please wait...</p>;
+      // --- NEW: More informative loading message ---
+      return <p>Analyzing...<br /><br />The server may be waking up, which can take up to a minute on the first scan. Please be patient.</p>;
     }
-
     if (!data) {
       return <p>Scanned data will appear here.</p>;
     }
-
     if (data.error) {
       return <p className="error-text">{data.error}</p>;
     }
-
     return (
       <div className="structured-result">
         {data.productName && <h3>{data.productName}</h3>}
-        {data.description && (
-          <>
-            <h4>Description</h4>
-            <p>{data.description}</p>
-          </>
-        )}
+        {data.description && ( <><h4>Description</h4><p>{data.description}</p></> )}
         {data.ingredients && data.ingredients.length > 0 && (
           <>
             <h4>Ingredients</h4>
-            <ul>
-              {data.ingredients.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
+            <ul>{data.ingredients.map((item, index) => (<li key={index}>{item}</li>))}</ul>
           </>
         )}
       </div>
@@ -112,57 +101,47 @@ const ScannerInterface = () => {
 
   return (
     <div className="scanner-container">
-        <div className="scanner-main">
-            <div className="header">
-                <h1>Product Scanner</h1>
-                <button onClick={toggleTheme} className="theme-toggle-button">
-                    {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-                </button>
-            </div>
-            <p>Upload images of the product description or use your camera to scan its contents.</p>
-            <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
-            <input type="file" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
-            <div className="upload-box">
-                <UploadIcon className="upload-icon" />
-                <div className="button-group">
-                    <button className="upload-button" onClick={() => galleryInputRef.current.click()}>From Gallery</button>
-                    <button className="upload-button" onClick={() => cameraInputRef.current.click()}>Use Camera</button>
-                </div>
-            </div>
-            {imagePreviews.length > 0 && (
-            <div className="scan-button-container">
-                <button className="scan-button" onClick={handleScan} disabled={isLoading}>
-                {isLoading ? 'Scanning...' : `Scan ${imagePreviews.length} Image(s)`}
-                </button>
-            </div>
-            )}
+      <div className="scanner-main">
+        <div className="header">
+          <h1>Product Scanner</h1>
+          <button onClick={toggleTheme} className="theme-toggle-button">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button>
         </div>
+        <p>Upload images of the product description or use your camera to scan its contents.</p>
+        <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
+        <input type="file" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
+        <div className="upload-box">
+          <UploadIcon className="upload-icon" />
+          <div className="button-group">
+            <button className="upload-button" onClick={() => galleryInputRef.current.click()}>From Gallery</button>
+            <button className="upload-button" onClick={() => cameraInputRef.current.click()}>Use Camera</button>
+          </div>
+        </div>
+        {imagePreviews.length > 0 && (
+          <div className="scan-button-container">
+            <button className="scan-button" onClick={handleScan} disabled={isLoading}>{isLoading ? 'Scanning...' : `Scan ${imagePreviews.length} Image(s)`}</button>
+          </div>
+        )}
+      </div>
       <div className="preview-main">
         <div className="preview-header">
           <h2>Image Previews ({imagePreviews.length})</h2>
           {imagePreviews.length > 0 && (<button onClick={clearImages} className="clear-button">Clear All</button>)}
         </div>
         <div className="image-preview-grid">
-            {imagePreviews.length > 0 ? (
-                imagePreviews.map((src, index) => (
-                <div key={index} className="preview-image-container">
-                    <img src={src} alt={`Preview ${index + 1}`} />
-                    <button className="remove-image-button" onClick={() => handleRemoveImage(index)}>
-                      &times;
-                    </button>
-                </div>
-                ))
-            ) : (
-                <div className="placeholder-text">
-                <p>Your uploaded images will appear here.</p>
-                </div>
-            )}
+          {imagePreviews.length > 0 ? (
+            imagePreviews.map((src, index) => (
+              <div key={index} className="preview-image-container">
+                <img src={src} alt={`Preview ${index + 1}`} />
+                <button className="remove-image-button" onClick={() => handleRemoveImage(index)}>&times;</button>
+              </div>
+            ))
+          ) : (
+            <div className="placeholder-text"><p>Your uploaded images will appear here.</p></div>
+          )}
         </div>
         <div className="ocr-result-container">
           <h2>Extracted Data</h2>
-          <div className="ocr-result-box">
-            <ResultDisplay data={ocrResult} />
-          </div>
+          <div className="ocr-result-box"><ResultDisplay data={ocrResult} /></div>
         </div>
       </div>
     </div>
