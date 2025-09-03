@@ -35,6 +35,15 @@ const ScannerInterface = () => {
     setImagePreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
   };
 
+  // --- NEW: Helper function for the API call ---
+  const performOcrRequest = async (formData) => {
+    const backendUrl = 'https://medalert-backend-ae9o.onrender.com/ocr';
+    return axios.post(backendUrl, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
+    });
+  };
+
   const handleScan = async () => {
     if (filesRef.current.length === 0) {
       alert('Please upload an image first.');
@@ -49,18 +58,27 @@ const ScannerInterface = () => {
     });
 
     try {
-      const backendUrl = 'https://medalert-backend-ae9o.onrender.com/ocr';
-      const response = await axios.post(backendUrl, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        // --- NEW: Added a longer timeout ---
-        timeout: 90000, // Wait for 90 seconds before giving up
-      });
+      // First attempt
+      const response = await performOcrRequest(formData);
       setOcrResult(response.data);
     } catch (error) {
-      console.error('Error during OCR process:', error);
-      setOcrResult({ error: 'Could not scan the image(s). The server might be busy or starting up. Please try again in a minute.' });
+      // --- NEW: Retry logic for 503 error ---
+      if (error.response && error.response.status === 503) {
+        console.log('Server is waking up (503 error). Retrying in 10 seconds...');
+        // Wait for 10 seconds before the second attempt
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        try {
+          // Second attempt
+          const retryResponse = await performOcrRequest(formData);
+          setOcrResult(retryResponse.data);
+        } catch (retryError) {
+          console.error('Error during retry OCR process:', retryError);
+          setOcrResult({ error: 'The server is busy. Please try again in a minute.' });
+        }
+      } else {
+        console.error('Error during OCR process:', error);
+        setOcrResult({ error: 'Could not scan the image(s). Please try again.' });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -76,15 +94,10 @@ const ScannerInterface = () => {
 
   const ResultDisplay = ({ data }) => {
     if (isLoading) {
-      // --- NEW: More informative loading message ---
       return <p>Analyzing...<br /><br />The server may be waking up, which can take up to a minute on the first scan. Please be patient.</p>;
     }
-    if (!data) {
-      return <p>Scanned data will appear here.</p>;
-    }
-    if (data.error) {
-      return <p className="error-text">{data.error}</p>;
-    }
+    if (!data) { return <p>Scanned data will appear here.</p>; }
+    if (data.error) { return <p className="error-text">{data.error}</p>; }
     return (
       <div className="structured-result">
         {data.productName && <h3>{data.productName}</h3>}
@@ -100,6 +113,7 @@ const ScannerInterface = () => {
   };
 
   return (
+    // ... your JSX remains the same ...
     <div className="scanner-container">
       <div className="scanner-main">
         <div className="header">
