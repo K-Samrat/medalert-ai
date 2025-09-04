@@ -17,9 +17,28 @@ const ScannerInterface = () => {
     document.body.classList.add(theme);
   }, [theme]);
 
-  // --- NEW: Helper function for the API call ---
+  // --- ALL HELPER FUNCTIONS MOVED HERE, BEFORE THE RETURN STATEMENT ---
+
+  const toggleTheme = () => {
+    setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
+  };
+
+  const handleFileChange = (event) => {
+    const newFiles = Array.from(event.target.files);
+    if (newFiles.length) {
+      filesRef.current = [...filesRef.current, ...newFiles];
+      const newPreviews = newFiles.map(file => URL.createObjectURL(file));
+      setImagePreviews(prevPreviews => [...prevPreviews, ...newPreviews]);
+    }
+  };
+
+  const handleRemoveImage = (indexToRemove) => {
+    filesRef.current = filesRef.current.filter((_, index) => index !== indexToRemove);
+    setImagePreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
+  };
+
   const performOcrRequest = async (formData) => {
-    const backendUrl = 'https://medalert-backend-ae9o.onrender.com/ocr';
+    const backendUrl = 'https://medalert-backend.onrender.com/ocr';
     return axios.post(backendUrl, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
       timeout: 90000,
@@ -40,17 +59,13 @@ const ScannerInterface = () => {
     });
 
     try {
-      // First attempt
       const response = await performOcrRequest(formData);
       setOcrResult(response.data);
     } catch (error) {
-      // --- THIS IS THE CORRECTED RETRY LOGIC ---
       if (error.response && error.response.status === 503) {
         console.log('Server is waking up (503 error). Retrying in 10 seconds...');
-        // Wait for 10 seconds before the second attempt
         await new Promise(resolve => setTimeout(resolve, 10000));
         try {
-          // Second attempt
           const retryResponse = await performOcrRequest(formData);
           setOcrResult(retryResponse.data);
         } catch (retryError) {
@@ -104,7 +119,6 @@ const ScannerInterface = () => {
   };
 
   return (
-    // ... your JSX remains the same ...
     <div className="scanner-container">
       <div className="scanner-main">
         <div className="header">
