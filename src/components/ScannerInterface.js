@@ -17,6 +17,7 @@ const ScannerInterface = () => {
     document.body.classList.add(theme);
   }, [theme]);
 
+  // --- NEW: More robust ResultDisplay component to prevent crashes ---
   const ResultDisplay = ({ data }) => {
     if (isLoading) {
       return <p>Analyzing, please wait...</p>;
@@ -27,43 +28,37 @@ const ScannerInterface = () => {
     if (data.error) {
       return <p className="error-text">{data.error}</p>;
     }
+
+    // This check prevents the app from crashing if the AI returns no useful data.
+    const hasData = data.productName || data.quantity || data.description || (data.ingredients && data.ingredients.length > 0) || (data.nutritionFacts && data.nutritionFacts.length > 0);
+    if (!hasData) {
+        return <p>No specific product data could be extracted from the image.</p>
+    }
+
     return (
       <div className="structured-result">
         {data.productName && <h3>{data.productName}</h3>}
-        {/* --- NEW: Display for Quantity --- */}
         {data.quantity && <p className="quantity-display"><strong>Quantity:</strong> {data.quantity}</p>}
-        
-        {data.description && (
-          <>
-            <h4>Description</h4>
-            <p>{data.description}</p>
-          </>
-        )}
-        {data.ingredients && data.ingredients.length > 0 && (
+        {data.description && ( <><h4>Description</h4><p>{data.description}</p></> )}
+        {/* Safety Check: Ensure ingredients is an array before mapping */}
+        {data.ingredients && Array.isArray(data.ingredients) && data.ingredients.length > 0 && (
           <>
             <h4>Ingredients</h4>
-            <ul>
-              {data.ingredients.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
+            <ul>{data.ingredients.map((item, index) => (<li key={index}>{item}</li>))}</ul>
           </>
         )}
-        {data.nutritionFacts && data.nutritionFacts.length > 0 && (
+        {/* Safety Check: Ensure nutritionFacts is an array before mapping */}
+        {data.nutritionFacts && Array.isArray(data.nutritionFacts) && data.nutritionFacts.length > 0 && (
           <>
             <h4>Nutrition Facts</h4>
-            <ul>
-              {data.nutritionFacts.map((item, index) => (
-                <li key={index}>{item}</li>
-              ))}
-            </ul>
+            <ul>{data.nutritionFacts.map((item, index) => (<li key={index}>{item}</li>))}</ul>
           </>
         )}
       </div>
     );
   };
   
-  // ... (the rest of your functions like handleScan, handleFileChange, etc., remain the same) ...
+  // ... (the rest of your functions remain the same) ...
   const toggleTheme = () => { setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light')); };
   const handleFileChange = (event) => {
     const newFiles = Array.from(event.target.files);
@@ -102,9 +97,7 @@ const ScannerInterface = () => {
         <div className="scanner-main">
             <div className="header">
                 <h1>Product Scanner</h1>
-                <button onClick={toggleTheme} className="theme-toggle-button">
-                    {theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}
-                </button>
+                <button onClick={toggleTheme} className="theme-toggle-button">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button>
             </div>
             <p>Upload images of the product description or use your camera to scan its contents.</p>
             <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
