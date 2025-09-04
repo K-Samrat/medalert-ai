@@ -17,6 +17,15 @@ const ScannerInterface = () => {
     document.body.classList.add(theme);
   }, [theme]);
 
+  const performOcrRequest = async (formData) => {
+    // Calling our backend, not OCR.space directly
+    const backendUrl = 'https://medalert-backend-main.onrender.com/ocr';
+    return axios.post(backendUrl, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
+    });
+  };
+
   const handleScan = async () => {
     if (filesRef.current.length === 0) {
       alert('Please upload an image first.');
@@ -25,40 +34,34 @@ const ScannerInterface = () => {
     setIsLoading(true);
     setOcrResult(null);
 
-    let combinedRawText = '';
+    const formData = new FormData();
+    filesRef.current.forEach(file => {
+      formData.append('files[]', file);
+    });
 
     try {
-      // --- STEP 1: Get Raw Text Directly from OCR.space ---
-      for (const file of filesRef.current) {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('apikey', process.env.REACT_APP_OCR_SPACE_API_KEY);
-        formData.append('OCREngine', '2');
-        
-        const ocrResponse = await axios.post('https://api.ocr.space/parse/image', formData);
-        if (ocrResponse.data && !ocrResponse.data.IsErroredOnProcessing) {
-          combinedRawText += ocrResponse.data.ParsedResults[0].ParsedText + '\n\n';
-        }
-      }
-
-      if (!combinedRawText.trim()) {
-        throw new Error("OCR failed to extract any text.");
-      }
-
-      // --- STEP 2: Send the extracted TEXT to our backend for AI correction ---
-      const backendUrl = 'https://medalert-backend-main.onrender.com/correct-text'; // New endpoint
-      const correctionResponse = await axios.post(backendUrl, { text: combinedRawText });
-      setOcrResult(correctionResponse.data);
-
+      const response = await performOcrRequest(formData);
+      setOcrResult(response.data);
     } catch (error) {
-      console.error('Error during full scan process:', error);
-      setOcrResult({ error: 'Failed to process the image. Please try a clearer image.' });
+      if (error.response && error.response.status === 503) {
+        console.log('Server is waking up (503 error). Retrying in 10 seconds...');
+        await new Promise(resolve => setTimeout(resolve, 10000));
+        try {
+          const retryResponse = await performOcrRequest(formData);
+          setOcrResult(retryResponse.data);
+        } catch (retryError) {
+          console.error('Error during retry OCR process:', retryError);
+          setOcrResult({ error: 'The server is busy. Please try again in a minute.' });
+        }
+      } else {
+        console.error('Error during OCR process:', error);
+        setOcrResult({ error: 'Could not scan the image(s). Please try again.' });
+      }
     } finally {
       setIsLoading(false);
     }
   };
-
-  // ... (All other functions and JSX remain the same as the last correct version) ...
+  
   const ResultDisplay = ({ data }) => {
     if (isLoading) { return <p>Analyzing... Please be patient.</p>; }
     if (!data) { return <p>Scanned data will appear here.</p>; }
@@ -99,8 +102,9 @@ const ScannerInterface = () => {
       <div className="scanner-main">
         <div className="header"><h1>Product Scanner</h1><button onClick={toggleTheme} className="theme-toggle-button">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button></div>
         <p>Upload images of the product description or use your camera to scan its contents.</p>
-        <input type="file" accept="image/jpeg, image/png" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
-        <input type="file" accept="image/jpeg, image/png" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
+        {/* --- Reverted to accept ALL image types --- */}
+        <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
+        <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
         <div className="upload-box"><UploadIcon className="upload-icon" /><div className="button-group"><button className="upload-button" onClick={() => galleryInputRef.current.click()}>From Gallery</button><button className="upload-button" onClick={() => cameraInputRef.current.click()}>Use Camera</button></div></div>
         {imagePreviews.length > 0 && (<div className="scan-button-container"><button className="scan-button" onClick={handleScan} disabled={isLoading}>{isLoading ? 'Scanning...' : `Scan ${imagePreviews.length} Image(s)`}</button></div>)}
       </div>
