@@ -18,14 +18,26 @@ const ScannerInterface = () => {
   }, [theme]);
 
   const performOcrRequest = async (formData) => {
-    const backendUrl = 'https://medalert-backend-main.onrender.com/ocr';
-    return axios.post(backendUrl, formData, { headers: { 'Content-Type': 'multipart/form-data', }, timeout: 90000, });
+    const backendUrl = 'https://medalert-backend-ae9o.onrender.com/ocr';
+    return axios.post(backendUrl, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+      timeout: 90000,
+    });
   };
+
   const handleScan = async () => {
-    if (filesRef.current.length === 0) { alert('Please upload an image first.'); return; }
-    setIsLoading(true); setOcrResult(null);
+    if (filesRef.current.length === 0) {
+      alert('Please upload an image first.');
+      return;
+    }
+    setIsLoading(true);
+    setOcrResult(null);
+
     const formData = new FormData();
-    filesRef.current.forEach(file => { formData.append('files[]', file); });
+    filesRef.current.forEach(file => {
+      formData.append('files[]', file);
+    });
+
     try {
       const response = await performOcrRequest(formData);
       setOcrResult(response.data);
@@ -44,26 +56,31 @@ const ScannerInterface = () => {
         console.error('Error during OCR process:', error);
         setOcrResult({ error: 'Could not scan the image(s). Please try again.' });
       }
-    } finally { setIsLoading(false); }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // --- REVERTED to the simpler ResultDisplay component ---
   const ResultDisplay = ({ data }) => {
-    if (isLoading) { return <p>Analyzing... Please be patient.</p>; }
+    if (isLoading) {
+      return <p>Analyzing...<br /><br />The server may be waking up, which can take up to a minute on the first scan. Please be patient.</p>;
+    }
     if (!data) { return <p>Scanned data will appear here.</p>; }
     if (data.error) { return <p className="error-text">{data.error}</p>; }
-    const hasData = data.productName || data.description || (data.ingredients && Array.isArray(data.ingredients) && data.ingredients.length > 0);
-    if (!hasData) { return <p>No specific product data could be extracted from the image.</p> }
     return (
       <div className="structured-result">
         {data.productName && <h3>{data.productName}</h3>}
         {data.description && ( <><h4>Description</h4><p>{data.description}</p></> )}
         {data.ingredients && Array.isArray(data.ingredients) && data.ingredients.length > 0 && (
-          <><h4>Ingredients</h4><ul>{data.ingredients.map((item, index) => (<li key={index}>{item}</li>))}</ul></>
+          <>
+            <h4>Ingredients</h4>
+            <ul>{data.ingredients.map((item, index) => (<li key={index}>{item}</li>))}</ul>
+          </>
         )}
       </div>
     );
   };
+  
   const toggleTheme = () => { setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light')); };
   const handleFileChange = (event) => {
     const newFiles = Array.from(event.target.files);
@@ -89,7 +106,7 @@ const ScannerInterface = () => {
         <div className="header"><h1>Product Scanner</h1><button onClick={toggleTheme} className="theme-toggle-button">{theme === 'light' ? '🌙 Dark Mode' : '☀️ Light Mode'}</button></div>
         <p>Upload images of the product description or use your camera to scan its contents.</p>
         <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
-        <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
+        <input type="file" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
         <div className="upload-box"><UploadIcon className="upload-icon" /><div className="button-group"><button className="upload-button" onClick={() => galleryInputRef.current.click()}>From Gallery</button><button className="upload-button" onClick={() => cameraInputRef.current.click()}>Use Camera</button></div></div>
         {imagePreviews.length > 0 && (<div className="scan-button-container"><button className="scan-button" onClick={handleScan} disabled={isLoading}>{isLoading ? 'Scanning...' : `Scan ${imagePreviews.length} Image(s)`}</button></div>)}
       </div>
