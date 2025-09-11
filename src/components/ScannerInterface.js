@@ -17,6 +17,7 @@ const ScannerInterface = () => {
     document.body.classList.add(theme);
   }, [theme]);
 
+  // --- Updated ResultDisplay component ---
   const ResultDisplay = ({ data }) => {
     if (isLoading) {
       return <p>Analyzing, please wait...</p>;
@@ -27,14 +28,11 @@ const ScannerInterface = () => {
     if (data.error) {
       return <p className="error-text">{data.error}</p>;
     }
-    const hasData = data.productName || data.quantity || (data.ingredients && Array.isArray(data.ingredients) && data.ingredients.length > 0);
+    const hasData = data.quantity || (data.ingredients && Array.isArray(data.ingredients) && data.ingredients.length > 0);
     if (!hasData) { return <p>No specific product data could be extracted from the image.</p> }
     return (
       <div className="structured-result">
-        {data.productName && <h3>{data.productName}</h3>}
         {data.quantity && <p className="quantity-display"><strong>Quantity:</strong> {data.quantity}</p>}
-        
-        {/* --- Description section removed --- */}
         
         {data.ingredients && Array.isArray(data.ingredients) && data.ingredients.length > 0 && (
           <>
@@ -53,6 +51,7 @@ const ScannerInterface = () => {
     );
   };
   
+  // ... (the rest of your functions like handleScan, handleFileChange, etc., remain the same) ...
   const toggleTheme = () => { setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light')); };
   const handleFileChange = (event) => {
     const newFiles = Array.from(event.target.files);
