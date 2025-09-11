@@ -17,7 +17,6 @@ const ScannerInterface = () => {
     document.body.classList.add(theme);
   }, [theme]);
 
-  // --- NEW: Updated ResultDisplay component ---
   const ResultDisplay = ({ data }) => {
     if (isLoading) {
       return <p>Analyzing, please wait...</p>;
@@ -34,6 +33,8 @@ const ScannerInterface = () => {
       <div className="structured-result">
         {data.productName && <h3>{data.productName}</h3>}
         {data.quantity && <p className="quantity-display"><strong>Quantity:</strong> {data.quantity}</p>}
+        
+        {/* --- Description section removed --- */}
         
         {data.ingredients && Array.isArray(data.ingredients) && data.ingredients.length > 0 && (
           <>
@@ -52,7 +53,6 @@ const ScannerInterface = () => {
     );
   };
   
-  // ... (the rest of your functions like handleScan, handleFileChange, etc., remain the same) ...
   const toggleTheme = () => { setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light')); };
   const handleFileChange = (event) => {
     const newFiles = Array.from(event.target.files);
@@ -67,7 +67,7 @@ const ScannerInterface = () => {
     setImagePreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
   };
   const performOcrRequest = async (formData) => {
-    const backendUrl = 'https://medalert-backend-ae9o.onrender.com/api/ocr';
+    const backendUrl = 'https://medalert-backend-main.onrender.com/ocr';
     return axios.post(backendUrl, formData, { headers: { 'Content-Type': 'multipart/form-data', }, timeout: 90000, });
   };
   const handleScan = async () => {
@@ -111,8 +111,8 @@ const ScannerInterface = () => {
                 </button>
             </div>
             <p>Upload images of the product description or use your camera to scan its contents.</p>
-            <input type="file" accept="image/jpeg, image/png" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
-            <input type="file" accept="image/jpeg, image/png" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
+            <input type="file" accept="image/*" multiple onChange={handleFileChange} ref={galleryInputRef} style={{ display: 'none' }} />
+            <input type="file" accept="image/*" capture="environment" onChange={handleFileChange} ref={cameraInputRef} style={{ display: 'none' }} />
             <div className="upload-box">
                 <UploadIcon className="upload-icon" />
                 <div className="button-group">
