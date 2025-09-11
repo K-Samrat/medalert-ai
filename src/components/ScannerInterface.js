@@ -67,7 +67,7 @@ const ScannerInterface = () => {
     setImagePreviews(prevPreviews => prevPreviews.filter((_, index) => index !== indexToRemove));
   };
   const performOcrRequest = async (formData) => {
-    const backendUrl = 'https://medalert-backend-main.onrender.com/ocr';
+    const backendUrl = 'https://medalert-backend-ae9o.onrender.com/api/ocr';
     return axios.post(backendUrl, formData, { headers: { 'Content-Type': 'multipart/form-data', }, timeout: 90000, });
   };
   const handleScan = async () => {
